@@ -1,13 +1,10 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #f5f5fb;
+  --foreground: #111827;
 }
 
 html,
@@ -17,9 +14,11 @@ body {
 }
 
 body {
+  min-height: 100vh;
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Inter", "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -35,8 +34,71 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+@keyframes sa-border-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
+
+.sa-portal-logo-pattern {
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes sa-logo-drift-a {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 40px 30px;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+@keyframes sa-logo-drift-b {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: -40px -30px;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+.sa-portal-frame {
+  position: relative;
+  padding: 2px;
+  border-radius: 1.5rem;
+  background-image: linear-gradient(120deg, #ff2f92, #ff8ad4, #ffe6f4);
+  background-size: 200% 200%;
+  animation: sa-border-gradient 10s ease-in-out infinite;
+}
+
+.sa-portal-logo-pattern::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("/logo.webp");
+  background-repeat: repeat;
+  background-size: 72px 72px;
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
+  animation: sa-logo-drift-a 18s linear infinite;
+}
+
+.sa-portal-logo-pattern > * {
+  position: relative;
+  z-index: 1;
+}
+
