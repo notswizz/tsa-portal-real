@@ -342,6 +342,13 @@ export default function StaffPortalHome() {
     }
   };
 
+  // Determine the current view state
+  const viewState = !hasSubmittedApplication 
+    ? "application" 
+    : canAccessAvailability 
+    ? "dashboard" 
+    : "pending";
+
   return (
     <>
       <Head>
@@ -351,76 +358,117 @@ export default function StaffPortalHome() {
           content="Staff dashboard for The Smith Agency."
         />
       </Head>
-      <div className="sa-portal-logo-pattern flex h-screen items-start justify-center bg-sa-background px-4 py-6 overflow-hidden">
-        <div className="sa-portal-frame h-[90vh] max-h-[90vh] w-full max-w-5xl overflow-hidden">
-          <div className="relative flex h-full max-h-full w-full flex-col space-y-3 overflow-hidden rounded-3xl bg-sa-card p-5 sm:p-6 md:p-8 shadow-soft">
-            <StaffHeader
-              email={email}
-              title={
-                !hasSubmittedApplication
-                  ? "Staff Application"
-                  : canAccessAvailability
-                  ? "Staff Dashboard"
-                  : "Application Under Review"
-              }
-              onLogout={handleLogout}
-            />
-            <main className="mt-6 flex-1 overflow-auto rounded-2xl border border-slate-100 bg-white/80 px-4 py-4 text-sm text-sa-slate">
-              {!hasSubmittedApplication && (
-                <StaffApplicationForm
-                  phone={phone}
-                  location={location}
-                  college={college}
-                  address={address}
-                  dressSize={dressSize}
-                  shoeSize={shoeSize}
-                  instagram={instagram}
-                  experience={experience}
-                  saving={saving}
-                  saveError={saveError}
-                  onChangePhone={setPhone}
-                  onChangeLocation={setLocation}
-                  onChangeCollege={setCollege}
-                  onChangeAddress={setAddress}
-                  onChangeDressSize={setDressSize}
-                  onChangeShoeSize={setShoeSize}
-                  onChangeInstagram={setInstagram}
-                  onChangeExperience={setExperience}
-                  onSubmit={handleApplicationSubmit}
+      <div className="sa-portal-logo-pattern min-h-screen bg-sa-background">
+        {/* Top gradient accent bar */}
+        <div className="h-1 w-full bg-gradient-to-r from-sa-pink via-[#ff6bb3] to-sa-pink sm:h-1.5" />
+        
+        <div className="mx-auto max-w-6xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+          {/* Main card container */}
+          <div className="sa-portal-frame animate-fade-in">
+            <div className="rounded-2xl bg-sa-card shadow-soft sm:rounded-3xl">
+              {/* Header section */}
+              <div className="border-b border-slate-100/80 px-4 py-4 sm:px-8 sm:py-6">
+                <StaffHeader
+                  email={email}
+                  staffName={staffDoc?.name}
+                  photoURL={staffDoc?.photoURL}
+                  title={
+                    viewState === "application"
+                      ? "Staff Application"
+                      : viewState === "dashboard"
+                      ? "Staff Dashboard"
+                      : "Application Under Review"
+                  }
+                  onLogout={handleLogout}
                 />
-              )}
-              {hasSubmittedApplication && !canAccessAvailability && (
-                <section className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sa-slate">
-                    Application received
-                  </p>
-                  <p className="text-sm text-sa-slate">
-                    Thanks for submitting your staff application. The Smith Agency team is reviewing your
-                    details now. Once your application is approved, your staff dashboard and availability
-                    tools will automatically unlock here.
-                  </p>
-                  <p className="text-[11px] text-sa-slate">
-                    If you have any questions in the meantime, please reach out to the office.
-                  </p>
-                </section>
-              )}
-              {canAccessAvailability && (
-                <StaffAvailabilityPanel
-                  shows={shows}
-                  loadingShows={loadingShows}
-                  selectedShowId={selectedShowId}
-                  dateOptions={dateOptions}
-                  selectedDates={selectedDates}
-                  availabilitySaving={availabilitySaving}
-                  availabilityError={availabilityError}
-                  availabilityHistory={availabilityHistory}
-                  hasSubmittedForSelectedShow={hasSubmittedForSelectedShow}
-                  onShowChange={setSelectedShowId}
-                  onToggleDate={handleToggleDate}
-                  onSubmit={handleAvailabilitySubmit}
-                />
-              )}
-            </main>
+              </div>
+
+              {/* Main content area */}
+              <main className="px-4 py-5 sm:px-8 sm:py-8">
+                {/* Application Form View */}
+                {viewState === "application" && (
+                  <div className="animate-fade-in">
+                    <StaffApplicationForm
+                      phone={phone}
+                      location={location}
+                      college={college}
+                      address={address}
+                      dressSize={dressSize}
+                      shoeSize={shoeSize}
+                      instagram={instagram}
+                      experience={experience}
+                      saving={saving}
+                      saveError={saveError}
+                      onChangePhone={setPhone}
+                      onChangeLocation={setLocation}
+                      onChangeCollege={setCollege}
+                      onChangeAddress={setAddress}
+                      onChangeDressSize={setDressSize}
+                      onChangeShoeSize={setShoeSize}
+                      onChangeInstagram={setInstagram}
+                      onChangeExperience={setExperience}
+                      onSubmit={handleApplicationSubmit}
+                    />
+                  </div>
+                )}
+
+                {/* Pending Review View */}
+                {viewState === "pending" && (
+                  <div className="animate-fade-in">
+                    <div className="mx-auto max-w-lg rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 p-5 text-center ring-1 ring-amber-100/80 sm:rounded-2xl sm:p-8">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-soft">
+                        <svg className="h-8 w-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-amber-600">
+                        Application Received
+                      </p>
+                      <h2 className="mt-2 font-display text-xl font-semibold text-sa-navy">
+                        We're Reviewing Your Application
+                      </h2>
+                      <p className="mt-3 text-sm leading-relaxed text-sa-slate">
+                        Thanks for submitting your staff application! The Smith Agency team is reviewing your
+                        details now. Once approved, your dashboard and availability tools will automatically unlock.
+                      </p>
+                      <div className="mt-5 rounded-xl bg-white/70 px-4 py-3 text-xs text-sa-slate">
+                        Questions? Email{" "}
+                        <a
+                          href="mailto:lillian@thesmithagency.net"
+                          className="font-medium text-sa-pink underline-offset-2 hover:underline"
+                        >
+                          lillian@thesmithagency.net
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dashboard View */}
+                {viewState === "dashboard" && (
+                  <div className="animate-fade-in">
+                    {/* Availability form section */}
+                    <div className="rounded-xl border border-slate-100 bg-white/80 p-4 shadow-sm sm:rounded-2xl sm:p-6">
+                      <StaffAvailabilityPanel
+                        shows={shows}
+                        loadingShows={loadingShows}
+                        selectedShowId={selectedShowId}
+                        dateOptions={dateOptions}
+                        selectedDates={selectedDates}
+                        availabilitySaving={availabilitySaving}
+                        availabilityError={availabilityError}
+                        availabilityHistory={availabilityHistory}
+                        hasSubmittedForSelectedShow={hasSubmittedForSelectedShow}
+                        onShowChange={setSelectedShowId}
+                        onToggleDate={handleToggleDate}
+                        onSubmit={handleAvailabilitySubmit}
+                      />
+                    </div>
+                  </div>
+                )}
+              </main>
+
+            </div>
           </div>
         </div>
       </div>

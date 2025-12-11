@@ -31,6 +31,7 @@ export default function ClientPortal() {
   const [mode, setMode] = useState("signin"); // "signin" | "signup"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [website, setWebsite] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,6 +49,12 @@ export default function ClientPortal() {
         await signInWithEmailAndPassword(auth, email.trim(), password);
         setSuccess("Signed in successfully.");
       } else {
+        // Check passwords match
+        if (password !== confirmPassword) {
+          setError("Passwords do not match.");
+          setIsSubmitting(false);
+          return;
+        }
         const credential = await createUserWithEmailAndPassword(
           auth,
           email.trim(),
@@ -105,6 +112,9 @@ export default function ClientPortal() {
     }
   };
 
+  const inputClasses =
+    "w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-sa-navy placeholder:text-slate-400 shadow-sm outline-none transition-all duration-200 focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20 hover:border-slate-300 sm:rounded-xl";
+
   return (
     <>
       <Head>
@@ -117,168 +127,260 @@ export default function ClientPortal() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="flex min-h-screen items-center justify-center bg-sa-background px-4">
-        <div className="w-full max-w-lg space-y-6 rounded-3xl bg-sa-card p-8 shadow-soft ring-1 ring-slate-100/80">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white shadow-soft ring-1 ring-slate-100/80">
-                <Image
-                  src="/logo.webp"
-                  alt="The Smith Agency"
-                  width={40}
-                  height={40}
-                  className="h-full w-full object-cover scale-110"
-                  priority
-                />
-              </div>
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.25em] text-sa-slate">
+      <div className="sa-portal-logo-pattern fixed inset-0 flex items-center justify-center overflow-hidden bg-sa-background px-3 py-6 sm:px-4 sm:py-8">
+        {/* Top gradient accent bar */}
+        <div className="fixed inset-x-0 top-0 z-50 h-1 bg-gradient-to-r from-sa-pink via-[#ff6bb3] to-sa-pink sm:h-1.5" />
+        
+        <div className="mx-auto w-full max-w-md animate-fade-in">
+          {/* Main card */}
+          <div className="sa-portal-frame max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)]">
+            <div className="max-h-[calc(100vh-3rem)] overflow-y-auto rounded-2xl bg-white p-6 shadow-soft sm:max-h-[calc(100vh-4rem)] sm:rounded-3xl sm:p-8">
+              {/* Logo and branding */}
+              <div className="mb-5 text-center sm:mb-6">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-sa-pink to-[#ff6bb3] shadow-lg shadow-sa-pink/25 sm:mb-5 sm:h-20 sm:w-20 sm:rounded-2xl">
+                  <Image
+                    src="/logo.webp"
+                    alt="The Smith Agency"
+                    width={80}
+                    height={80}
+                    className="h-full w-full scale-110 object-cover"
+                    priority
+                  />
+                </div>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-sa-pink sm:text-[10px] sm:tracking-[0.35em]">
                   The Smith Agency
                 </p>
-                <h1 className="font-display text-2xl font-semibold tracking-tight text-sa-navy">
-                  {mode === "signin" ? "Client Login" : "Create Account"}
+                <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-sa-navy sm:mt-2 sm:text-3xl">
+                  Client Portal
                 </h1>
               </div>
-            </div>
 
-            <div className="inline-flex rounded-full bg-slate-100 p-1 text-[11px] font-medium text-sa-slate">
-              <button
-                type="button"
-                onClick={() => setMode("signin")}
-                className={`rounded-full px-3 py-1 transition ${
-                  mode === "signin"
-                    ? "bg-white text-sa-navy shadow-sm"
-                    : "hover:text-sa-navy/80"
-                }`}
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("signup")}
-                className={`rounded-full px-3 py-1 transition ${
-                  mode === "signup"
-                    ? "bg-white text-sa-navy shadow-sm"
-                    : "hover:text-sa-navy/80"
-                }`}
-              >
-                Create account
-              </button>
-            </div>
-          </div>
-          <form
-            onSubmit={handleSubmit}
-            className="mt-2 space-y-4 text-sm text-sa-slate"
-          >
-            {mode === "signup" && (
-              <>
-                <div className="space-y-1">
-                  <label
-                    htmlFor="companyName"
-                    className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
+              {/* Mode toggle */}
+              <div className="mb-5 flex justify-center sm:mb-6">
+                <div className="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-medium text-sa-slate sm:text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setMode("signin")}
+                    className={`rounded-lg px-4 py-2 transition-all sm:rounded-xl sm:px-5 ${
+                      mode === "signin"
+                        ? "bg-white text-sa-navy shadow-sm"
+                        : "hover:text-sa-navy/80"
+                    }`}
                   >
-                    Company name
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("signup")}
+                    className={`rounded-lg px-4 py-2 transition-all sm:rounded-xl sm:px-5 ${
+                      mode === "signup"
+                        ? "bg-white text-sa-navy shadow-sm"
+                        : "hover:text-sa-navy/80"
+                    }`}
+                  >
+                    Create account
+                  </button>
+                </div>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {mode === "signup" && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="companyName"
+                        className="block text-xs font-medium text-sa-slate"
+                      >
+                        Company Name <span className="text-sa-pink">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </span>
+                        <input
+                          id="companyName"
+                          type="text"
+                          autoComplete="organization"
+                          required
+                          value={companyName}
+                          onChange={(event) => setCompanyName(event.target.value)}
+                          className={`${inputClasses} pl-11`}
+                          placeholder="Your company name"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="website"
+                        className="block text-xs font-medium text-sa-slate"
+                      >
+                        Website <span className="text-slate-400">(optional)</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                          </svg>
+                        </span>
+                        <input
+                          id="website"
+                          type="text"
+                          autoComplete="url"
+                          placeholder="yourwebsite.com"
+                          value={website}
+                          onChange={(event) => setWebsite(event.target.value)}
+                          className={`${inputClasses} pl-11`}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="email"
+                    className="block text-xs font-medium text-sa-slate"
+                  >
+                    Email <span className="text-sa-pink">*</span>
                   </label>
-                  <input
-                    id="companyName"
-                    type="text"
-                    autoComplete="organization"
-                    required
-                    value={companyName}
-                    onChange={(event) => setCompanyName(event.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy shadow-inner outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </span>
+                    <input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      className={`${inputClasses} pl-11`}
+                      placeholder="you@company.com"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <label
-                    htmlFor="website"
-                    className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
+                    htmlFor="password"
+                    className="block text-xs font-medium text-sa-slate"
                   >
-                    Website
+                    Password <span className="text-sa-pink">*</span>
                   </label>
-                  <input
-                    id="website"
-                    type="text"
-                    autoComplete="url"
-                    placeholder="https://"
-                    value={website}
-                    onChange={(event) => setWebsite(event.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy shadow-inner outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </span>
+                    <input
+                      id="password"
+                      type="password"
+                      autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                      required
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className={`${inputClasses} pl-11`}
+                      placeholder="••••••••"
+                    />
+                  </div>
                 </div>
-              </>
-            )}
 
-            <div className="space-y-1">
-              <label
-                htmlFor="email"
-                className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy shadow-inner outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-              />
+                {mode === "signup" && (
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-xs font-medium text-sa-slate"
+                    >
+                      Confirm Password <span className="text-sa-pink">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                      </span>
+                      <input
+                        id="confirmPassword"
+                        type="password"
+                        autoComplete="new-password"
+                        required
+                        value={confirmPassword}
+                        onChange={(event) => setConfirmPassword(event.target.value)}
+                        className={`${inputClasses} pl-11`}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="group relative mt-2 inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-sa-pink to-[#ff5fa8] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sa-pink/25 transition-all duration-300 hover:shadow-xl hover:shadow-sa-pink/30 disabled:cursor-not-allowed disabled:opacity-70 sm:text-base"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      {mode === "signin" ? "Signing in..." : "Creating account..."}
+                    </>
+                  ) : (
+                    <>
+                      {mode === "signin" ? "Sign in" : "Create account"}
+                      <svg className="hidden h-5 w-5 transition-transform group-hover:translate-x-1 sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+
+                {error && (
+                  <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-xs text-red-700 ring-1 ring-red-100 sm:items-center sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm">
+                    <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500 sm:mt-0 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2.5 text-xs text-green-700 ring-1 ring-green-100 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm">
+                    <svg className="h-4 w-4 flex-shrink-0 text-green-500 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {success}
+                  </div>
+                )}
+              </form>
+
+              {/* Divider */}
+              <div className="my-5 flex items-center gap-3 sm:my-6">
+                <div className="h-px flex-1 bg-slate-100" />
+                <span className="text-[11px] text-sa-slate sm:text-xs">or</span>
+                <div className="h-px flex-1 bg-slate-100" />
+              </div>
+
+              {/* Back link */}
+              <div className="text-center">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-sa-slate transition hover:text-sa-pink sm:gap-2 sm:text-sm"
+                >
+                  <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to portal home
+                </Link>
+              </div>
             </div>
-
-            <div className="space-y-1">
-              <label
-                htmlFor="password"
-                className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy shadow-inner outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-sa-pink px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-[#ff0f80] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSubmitting
-                ? mode === "signin"
-                  ? "Signing in..."
-                  : "Creating account..."
-                : mode === "signin"
-                ? "Sign in"
-                : "Create account"}
-            </button>
-
-            {error && (
-              <p className="text-xs text-red-600" role="alert">
-                {error}
-              </p>
-            )}
-            {success && (
-              <p className="text-xs text-emerald-600" role="status">
-                {success}
-              </p>
-            )}
-          </form>
-
-          <div className="flex items-center justify-between pt-2 text-xs text-sa-slate">
-            <Link
-              href="/"
-              className="font-medium text-sa-pink underline-offset-4 hover:underline"
-            >
-              ← Back to portal home
-            </Link>
           </div>
         </div>
       </div>

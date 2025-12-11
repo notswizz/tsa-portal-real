@@ -378,11 +378,16 @@ export default function ClientBookingRequestCard({
 
 function StaffDayRow({ date, value, onChange }) {
   const { weekday, full } = formatStaffDateLabel(date);
+  const hasFilled = value !== undefined && value !== "" && Number(value) > 0;
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/60 bg-white/90 px-3 py-2 shadow-sm">
+    <div className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 shadow-sm transition-all ${
+      hasFilled 
+        ? "border-sa-pink bg-sa-pinkLight/30 ring-1 ring-sa-pink/20" 
+        : "border-slate-200/60 bg-white/90"
+    }`}>
       <div className="flex flex-col">
-        <span className="text-[11px] font-semibold text-sa-navy">
+        <span className={`text-[11px] font-semibold ${hasFilled ? "text-sa-pink" : "text-sa-navy"}`}>
           {weekday || date}
         </span>
         <span className="text-[10px] text-sa-slate">{full}</span>
@@ -394,7 +399,9 @@ function StaffDayRow({ date, value, onChange }) {
           max="99"
           value={value ?? ""}
           onChange={(event) => onChange(date, event.target.value)}
-          className="w-20 rounded-xl border border-slate-200 bg-white px-2 py-1 text-[11px] text-sa-navy shadow-inner outline-none transition focus:border-sa-pink focus:ring-2 focus:ring-sa-pink/20"
+          className={`w-20 rounded-xl border bg-white px-2 py-1 text-center text-sm font-medium text-sa-navy outline-none transition focus:border-sa-pink focus:ring-2 focus:ring-sa-pink/20 ${
+            hasFilled ? "border-sa-pink" : "border-slate-200"
+          }`}
         />
       </div>
     </div>
