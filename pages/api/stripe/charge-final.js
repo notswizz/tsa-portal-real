@@ -117,8 +117,9 @@ export default async function handler(req, res) {
     let customerId = booking.stripeCustomerId || null;
     let paymentMethodId = booking.stripePaymentMethodId || null;
 
-    // Best-effort recovery for older bookings: look up the original Checkout Session
-    // and pull customer/payment method from Stripe if we still have the session id.
+    // Best-effort recovery for older bookings:
+    // 1) look up the original Checkout Session (if present)
+    // 2) fall back to the original deposit PaymentIntent (if present)
     if ((!customerId || !paymentMethodId) && booking.stripeCheckoutSessionId) {
       try {
         const session = await stripe.checkout.sessions.retrieve(
@@ -145,20 +146,55 @@ export default async function handler(req, res) {
             paymentMethodId = pi.payment_method.id;
           }
         }
-
-        // Persist recovered values back to Firestore for future calls
-        if (customerId || paymentMethodId) {
-          await updateDoc(bookingRef, {
-            ...(customerId ? { stripeCustomerId: customerId } : {}),
-            ...(paymentMethodId ? { stripePaymentMethodId: paymentMethodId } : {}),
-            updatedAt: new Date().toISOString(),
-          });
-        }
       } catch (e) {
         console.error(
           "Error attempting to recover Stripe customer/payment method from Checkout Session:",
           e
         );
+      }
+    }
+
+    if (
+      (!customerId || !paymentMethodId) &&
+      booking.stripePaymentIntentId
+    ) {
+      try {
+        const pi = await stripe.paymentIntents.retrieve(
+          booking.stripePaymentIntentId
+        );
+
+        if (!customerId && pi.customer) {
+          customerId =
+            typeof pi.customer === "string"
+              ? pi.customer
+              : pi.customer.id;
+        }
+
+        if (!paymentMethodId && pi.payment_method) {
+          if (typeof pi.payment_method === "string") {
+            paymentMethodId = pi.payment_method;
+          } else if (pi.payment_method.id) {
+            paymentMethodId = pi.payment_method.id;
+          }
+        }
+      } catch (e) {
+        console.error(
+          "Error attempting to recover Stripe customer/payment method from PaymentIntent:",
+          e
+        );
+      }
+    }
+
+    // Persist any recovered values back to Firestore for future calls
+    if (customerId || paymentMethodId) {
+      try {
+        await updateDoc(bookingRef, {
+          ...(customerId ? { stripeCustomerId: customerId } : {}),
+          ...(paymentMethodId ? { stripePaymentMethodId: paymentMethodId } : {}),
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error("Error updating booking with recovered Stripe IDs:", e);
       }
     }
 
