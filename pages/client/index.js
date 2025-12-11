@@ -10,6 +10,22 @@ import {
 import { auth, db } from "@/lib/firebaseClient";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
+async function hashPassword(rawPassword) {
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(rawPassword);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return hashHex;
+  } catch (err) {
+    console.error("Failed to hash password", err);
+    return null;
+  }
+}
+
 export default function ClientPortal() {
   const router = useRouter();
   const [mode, setMode] = useState("signin"); // "signin" | "signup"
@@ -40,11 +56,13 @@ export default function ClientPortal() {
 
         const createdEmail = credential.user.email ?? email.trim();
         const trimmedCompanyName = companyName.trim();
+        const passwordHash = await hashPassword(password);
 
         await setDoc(doc(db, "clients", credential.user.uid), {
           email: createdEmail,
           name: trimmedCompanyName || null,
           website: website.trim() || null,
+          passwordHash: passwordHash || null,
           createdAt: serverTimestamp(),
         });
 

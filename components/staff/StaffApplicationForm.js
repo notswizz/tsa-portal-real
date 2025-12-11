@@ -1,6 +1,8 @@
 export default function StaffApplicationForm({
   phone,
   location,
+  college,
+  address,
   dressSize,
   shoeSize,
   instagram,
@@ -9,6 +11,8 @@ export default function StaffApplicationForm({
   saveError,
   onChangePhone,
   onChangeLocation,
+  onChangeCollege,
+  onChangeAddress,
   onChangeDressSize,
   onChangeShoeSize,
   onChangeInstagram,
@@ -70,6 +74,43 @@ export default function StaffApplicationForm({
               <option value="NYC">New York (NYC)</option>
               <option value="LV">Las Vegas (LV)</option>
             </select>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1">
+            <label
+              htmlFor="college"
+              className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
+            >
+              College (optional)
+            </label>
+            <input
+              id="college"
+              type="text"
+              value={college}
+              onChange={(event) => onChangeCollege(event.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy shadow-inner outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+              placeholder="School or university"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label
+              htmlFor="address"
+              className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
+            >
+              Mailing address
+            </label>
+            <input
+              id="address"
+              type="text"
+              required
+              value={address}
+              onChange={(event) => onChangeAddress(event.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy shadow-inner outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+              placeholder="Street, city, state"
+            />
           </div>
         </div>
 

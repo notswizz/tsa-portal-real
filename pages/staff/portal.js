@@ -30,6 +30,8 @@ export default function StaffPortalHome() {
   const [saveError, setSaveError] = useState("");
   const [phone, setPhone] = useState(staffDoc?.phone || "");
   const [location, setLocation] = useState(staffDoc?.location || "");
+  const [college, setCollege] = useState(staffDoc?.college || "");
+  const [address, setAddress] = useState(staffDoc?.address || "");
   const [dressSize, setDressSize] = useState(staffDoc?.dressSize || "");
   const [shoeSize, setShoeSize] = useState(staffDoc?.shoeSize || "");
   const [instagram, setInstagram] = useState(staffDoc?.instagram || "");
@@ -69,21 +71,26 @@ export default function StaffPortalHome() {
         const snap = await getDoc(staffRef);
         if (snap.exists()) {
           const data = snap.data();
+          // Only allow access for real staff records
+          if (data.role !== "staff" || data.active === false) {
+            await signOut(auth);
+            router.replace("/client");
+            return;
+          }
           setStaffDoc({ id: snap.id, ...data });
           setPhone(data.phone || "");
           setLocation(data.location || "");
+          setCollege(data.college || "");
+          setAddress(data.address || "");
           setDressSize(data.dressSize || "");
           setShoeSize(data.shoeSize || "");
           setInstagram(data.instagram || "");
           setExperience(data.retailWholesaleExperience || "");
         } else {
-          setStaffDoc(null);
-          setPhone("");
-          setLocation("");
-          setDressSize("");
-          setShoeSize("");
-          setInstagram("");
-          setExperience("");
+          // No staff profile: treat as non-staff and redirect to client portal
+          await signOut(auth);
+          router.replace("/client");
+          return;
         }
       } catch (err) {
         console.error("Error loading staff profile", err);
@@ -184,15 +191,29 @@ export default function StaffPortalHome() {
       (entry) => entry.showId === selectedShowId && entry.staffId === userId
     );
 
-  const hasCompletedApplication =
+  // Application + approval state, shared with admin backend
+  const hasCompletedApplicationFields =
     !!staffDoc &&
     !!staffDoc.phone &&
     !!staffDoc.location &&
+    !!staffDoc.address &&
     !!staffDoc.dressSize &&
     !!staffDoc.shoeSize &&
     !!staffDoc.instagram &&
     typeof staffDoc.retailWholesaleExperience === "string" &&
     staffDoc.retailWholesaleExperience.trim().length > 0;
+
+  // Prefer explicit flags written by either portal or admin, but fall back to field presence
+  const applicationCompletedFlag =
+    !!staffDoc?.applicationFormCompleted ||
+    !!staffDoc?.applicationCompleted ||
+    hasCompletedApplicationFields;
+
+  // This is set only by the admin app on review/approval
+  const applicationApprovedFlag = !!staffDoc?.applicationFormApproved;
+
+  const hasSubmittedApplication = applicationCompletedFlag;
+  const canAccessAvailability = applicationCompletedFlag && applicationApprovedFlag;
 
   if (checking) {
     return null;
@@ -211,11 +232,25 @@ export default function StaffPortalHome() {
         {
           phone: phone.trim(),
           location,
+          college: college.trim() || null,
+          address: address.trim(),
           dressSize: dressSize.trim(),
           shoeSize: shoeSize.trim(),
           instagram: instagram.trim(),
           retailWholesaleExperience: experience.trim(),
+          // Mark the application as completed in a way the admin app understands
           applicationCompleted: true,
+          applicationFormCompleted: true,
+          applicationFormData: {
+            phone: phone.trim(),
+            location,
+            college: college.trim() || null,
+            address: address.trim(),
+            dressSize: dressSize.trim(),
+            shoeSize: shoeSize.trim(),
+            instagram: instagram.trim(),
+            retailWholesaleExperience: experience.trim(),
+          },
           updatedAt: serverTimestamp(),
         },
         { merge: true }
@@ -227,6 +262,8 @@ export default function StaffPortalHome() {
         setStaffDoc({ id: snap.id, ...data });
         setPhone(data.phone || "");
         setLocation(data.location || "");
+        setCollege(data.college || "");
+        setAddress(data.address || "");
         setDressSize(data.dressSize || "");
         setShoeSize(data.shoeSize || "");
         setInstagram(data.instagram || "");
@@ -319,11 +356,55 @@ export default function StaffPortalHome() {
           <div className="relative flex h-full max-h-full w-full flex-col space-y-3 overflow-hidden rounded-3xl bg-sa-card p-5 sm:p-6 md:p-8 shadow-soft">
             <StaffHeader
               email={email}
-              title={hasCompletedApplication ? "Staff Dashboard" : "Staff Application"}
+              title={
+                !hasSubmittedApplication
+                  ? "Staff Application"
+                  : canAccessAvailability
+                  ? "Staff Dashboard"
+                  : "Application Under Review"
+              }
               onLogout={handleLogout}
             />
             <main className="mt-6 flex-1 overflow-auto rounded-2xl border border-slate-100 bg-white/80 px-4 py-4 text-sm text-sa-slate">
-              {hasCompletedApplication ? (
+              {!hasSubmittedApplication && (
+                <StaffApplicationForm
+                  phone={phone}
+                  location={location}
+                  college={college}
+                  address={address}
+                  dressSize={dressSize}
+                  shoeSize={shoeSize}
+                  instagram={instagram}
+                  experience={experience}
+                  saving={saving}
+                  saveError={saveError}
+                  onChangePhone={setPhone}
+                  onChangeLocation={setLocation}
+                  onChangeCollege={setCollege}
+                  onChangeAddress={setAddress}
+                  onChangeDressSize={setDressSize}
+                  onChangeShoeSize={setShoeSize}
+                  onChangeInstagram={setInstagram}
+                  onChangeExperience={setExperience}
+                  onSubmit={handleApplicationSubmit}
+                />
+              )}
+              {hasSubmittedApplication && !canAccessAvailability && (
+                <section className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sa-slate">
+                    Application received
+                  </p>
+                  <p className="text-sm text-sa-slate">
+                    Thanks for submitting your staff application. The Smith Agency team is reviewing your
+                    details now. Once your application is approved, your staff dashboard and availability
+                    tools will automatically unlock here.
+                  </p>
+                  <p className="text-[11px] text-sa-slate">
+                    If you have any questions in the meantime, please reach out to the office.
+                  </p>
+                </section>
+              )}
+              {canAccessAvailability && (
                 <StaffAvailabilityPanel
                   shows={shows}
                   loadingShows={loadingShows}
@@ -337,24 +418,6 @@ export default function StaffPortalHome() {
                   onShowChange={setSelectedShowId}
                   onToggleDate={handleToggleDate}
                   onSubmit={handleAvailabilitySubmit}
-                />
-              ) : (
-                <StaffApplicationForm
-                  phone={phone}
-                  location={location}
-                  dressSize={dressSize}
-                  shoeSize={shoeSize}
-                  instagram={instagram}
-                  experience={experience}
-                  saving={saving}
-                  saveError={saveError}
-                  onChangePhone={setPhone}
-                  onChangeLocation={setLocation}
-                  onChangeDressSize={setDressSize}
-                  onChangeShoeSize={setShoeSize}
-                  onChangeInstagram={setInstagram}
-                  onChangeExperience={setExperience}
-                  onSubmit={handleApplicationSubmit}
                 />
               )}
             </main>
