@@ -114,8 +114,53 @@ export default async function handler(req, res) {
       });
     }
 
-    const customerId = booking.stripeCustomerId;
-    const paymentMethodId = booking.stripePaymentMethodId;
+    let customerId = booking.stripeCustomerId || null;
+    let paymentMethodId = booking.stripePaymentMethodId || null;
+
+    // Best-effort recovery for older bookings: look up the original Checkout Session
+    // and pull customer/payment method from Stripe if we still have the session id.
+    if ((!customerId || !paymentMethodId) && booking.stripeCheckoutSessionId) {
+      try {
+        const session = await stripe.checkout.sessions.retrieve(
+          booking.stripeCheckoutSessionId,
+          { expand: ["payment_intent"] }
+        );
+
+        if (!customerId && session.customer) {
+          customerId =
+            typeof session.customer === "string"
+              ? session.customer
+              : session.customer.id;
+        }
+
+        let pi =
+          typeof session.payment_intent === "string"
+            ? await stripe.paymentIntents.retrieve(session.payment_intent)
+            : session.payment_intent || null;
+
+        if (!paymentMethodId && pi) {
+          if (typeof pi.payment_method === "string") {
+            paymentMethodId = pi.payment_method;
+          } else if (pi.payment_method && pi.payment_method.id) {
+            paymentMethodId = pi.payment_method.id;
+          }
+        }
+
+        // Persist recovered values back to Firestore for future calls
+        if (customerId || paymentMethodId) {
+          await updateDoc(bookingRef, {
+            ...(customerId ? { stripeCustomerId: customerId } : {}),
+            ...(paymentMethodId ? { stripePaymentMethodId: paymentMethodId } : {}),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        console.error(
+          "Error attempting to recover Stripe customer/payment method from Checkout Session:",
+          e
+        );
+      }
+    }
 
     if (!customerId || !paymentMethodId) {
       return res.status(400).json({
