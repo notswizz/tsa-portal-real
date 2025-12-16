@@ -120,7 +120,7 @@ export default function StaffPortalHome() {
         const showsSnap = await getDocs(showsRef);
         const allShows = showsSnap.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-          .filter((show) => show.status === "active");
+          .filter((show) => (show.status || "active") === "active");
         setShows(allShows);
 
         // Load all availability entries for this staff member

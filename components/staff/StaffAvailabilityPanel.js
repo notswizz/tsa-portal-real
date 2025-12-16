@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 export default function StaffAvailabilityPanel({
   shows,
   loadingShows,
@@ -12,6 +14,8 @@ export default function StaffAvailabilityPanel({
   onToggleDate,
   onSubmit,
 }) {
+  const [showFaqModal, setShowFaqModal] = useState(false);
+
   const formatDateLabel = (value) => {
     if (!value || typeof value !== "string") return value;
     const date = new Date(`${value}T00:00:00`);
@@ -55,17 +59,94 @@ export default function StaffAvailabilityPanel({
           </div>
         </div>
         
-        {/* Help link - hidden on mobile */}
-        <a
-          href="mailto:lillian@thesmithagency.net"
-          className="hidden items-center gap-2 rounded-xl bg-slate-50 px-4 py-2.5 text-xs font-medium text-sa-slate ring-1 ring-slate-100 transition-all hover:bg-white hover:shadow-sm sm:inline-flex"
+        {/* FAQ button */}
+        <button
+          type="button"
+          onClick={() => setShowFaqModal(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-sa-slate ring-1 ring-slate-100 transition-all hover:bg-white hover:shadow-sm sm:px-4 sm:py-2.5"
         >
           <svg className="h-4 w-4 text-sa-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Need Help?
-        </a>
+          <span className="hidden sm:inline">FAQ</span>
+        </button>
       </div>
+
+      {/* FAQ Modal */}
+      {showFaqModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowFaqModal(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setShowFaqModal(false)}
+              className="absolute right-4 top-4 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sa-pinkLight to-pink-100">
+                <svg className="h-5 w-5 text-sa-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-sa-navy">Show Day Info</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white text-sa-pink shadow-sm">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-sa-navy">Work Hours</p>
+                  <p className="mt-0.5 text-sm text-sa-slate">Days are 9 AM – 6 PM</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white text-sa-pink shadow-sm">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-sa-navy">Badge Pickup</p>
+                  <p className="mt-0.5 text-sm text-sa-slate">The agency requests your badge for pickup</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white text-sa-pink shadow-sm">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-sa-navy">First Day</p>
+                  <p className="mt-0.5 text-sm text-sa-slate">Please arrive early on your first day</p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowFaqModal(false)}
+              className="mt-6 w-full rounded-xl bg-gradient-to-r from-sa-pink to-[#ff5fa8] py-3 text-sm font-semibold text-white shadow-lg shadow-sa-pink/25 transition hover:shadow-xl"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Show Selection Form */}
       <form onSubmit={onSubmit} className="space-y-5">
@@ -296,7 +377,7 @@ export default function StaffAvailabilityPanel({
             </span>
           </div>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 max-h-[280px] space-y-3 overflow-y-auto pr-1">
             {availabilityHistory.map((entry) => {
               const dates = Array.isArray(entry.availableDates)
                 ? entry.availableDates
