@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
+  signOut 
+} from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebaseClient";
 
@@ -15,73 +21,113 @@ export default function StaffPortal() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Handle redirect result on page load (for mobile browsers)
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          setIsLoading(true);
+          await processSignIn(result.user);
+        }
+      } catch (err) {
+        console.error("Redirect result error:", err);
+        // Don't show error for "no redirect" cases
+        if (err.code !== "auth/popup-closed-by-user") {
+          setError("Sign in was interrupted. Please try again.");
+        }
+      }
+    };
+    handleRedirectResult();
+  }, []);
+
+  // Process successful sign-in
+  const processSignIn = async (user) => {
+    const email = user?.email || "";
+
+    if (STAFF_DOMAIN && email) {
+      const emailDomain = email.split("@")[1]?.toLowerCase() || "";
+      if (emailDomain !== STAFF_DOMAIN) {
+        await signOut(auth);
+        setError(
+          `Please sign in with your ${STAFF_DOMAIN} staff email address.`
+        );
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // Ensure staff profile exists in Firestore
+    if (user?.uid) {
+      try {
+        const staffRef = doc(db, "staff", user.uid);
+        const existing = await getDoc(staffRef);
+
+        if (!existing.exists()) {
+          await setDoc(staffRef, {
+            email: email || null,
+            name: user.displayName || null,
+            photoURL: user.photoURL || null,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            role: "staff",
+            active: true,
+          });
+        } else {
+          await setDoc(
+            staffRef,
+            {
+              email: email || null,
+              name: user.displayName || null,
+              photoURL: user.photoURL || null,
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+        }
+      } catch (profileError) {
+        console.error("Error ensuring staff profile", profileError);
+      }
+    }
+
+    router.push("/staff/portal");
+  };
+
   const handleGoogleLogin = async () => {
     setError("");
     setIsLoading(true);
 
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: "select_account",
+    });
+
+    // Try popup first, fall back to redirect for mobile browsers
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
-
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const email = user?.email || "";
-
-      if (STAFF_DOMAIN && email) {
-        const emailDomain = email.split("@")[1]?.toLowerCase() || "";
-        if (emailDomain !== STAFF_DOMAIN) {
-          await signOut(auth);
-          setError(
-            `Please sign in with your ${STAFF_DOMAIN} staff email address.`
-          );
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Ensure staff profile exists in Firestore
-      if (user?.uid) {
-        try {
-          const staffRef = doc(db, "staff", user.uid);
-          const existing = await getDoc(staffRef);
-
-          if (!existing.exists()) {
-            await setDoc(staffRef, {
-              email: email || null,
-              name: user.displayName || null,
-              photoURL: user.photoURL || null,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-              role: "staff",
-              active: true,
-            });
-          } else {
-            // keep a lightweight updatedAt touch on sign-in
-            await setDoc(
-              staffRef,
-              {
-                email: email || null,
-                name: user.displayName || null,
-                photoURL: user.photoURL || null,
-                updatedAt: serverTimestamp(),
-              },
-              { merge: true }
-            );
-          }
-        } catch (profileError) {
-          console.error("Error ensuring staff profile", profileError);
-        }
-      }
-
-      router.push("/staff/portal");
+      await processSignIn(result.user);
     } catch (err) {
-      console.error("Error during staff Google login", err);
-      setError(
-        "We couldn't complete your sign in. Please try again or contact the office."
-      );
-    } finally {
+      console.error("Popup sign-in error:", err);
+      
+      // If popup blocked or storage issue, try redirect
+      if (
+        err.code === "auth/popup-blocked" ||
+        err.code === "auth/popup-closed-by-user" ||
+        err.code === "auth/cancelled-popup-request" ||
+        err.message?.includes("storage") ||
+        err.message?.includes("initial state")
+      ) {
+        try {
+          // Use redirect as fallback
+          await signInWithRedirect(auth, provider);
+          return; // Page will reload after redirect
+        } catch (redirectErr) {
+          console.error("Redirect sign-in error:", redirectErr);
+          setError("We couldn't complete your sign in. Please try opening this page directly in Safari or Chrome.");
+        }
+      } else {
+        setError("We couldn't complete your sign in. Please try again or contact the office.");
+      }
       setIsLoading(false);
     }
   };
