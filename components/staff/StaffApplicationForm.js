@@ -1,5 +1,3 @@
-import AddressAutocomplete from "./AddressAutocomplete";
-
 export default function StaffApplicationForm({
   phone,
   location,
@@ -141,13 +139,14 @@ export default function StaffApplicationForm({
               <label htmlFor="address" className="block text-xs font-medium text-sa-slate">
                 Mailing Address <span className="text-sa-pink">*</span>
               </label>
-              <AddressAutocomplete
+              <input
                 id="address"
+                type="text"
                 required
                 value={address}
-                onChange={onChangeAddress}
+                onChange={(event) => onChangeAddress(event.target.value)}
                 className={inputClasses}
-                placeholder="Start typing your address..."
+                placeholder="Street, City, State, ZIP"
               />
             </div>
 
