@@ -233,7 +233,8 @@ export default async function handler(req, res) {
       actionUrl = paymentIntent.next_action.redirect_to_url.url;
     }
 
-    // On success, update booking status + store final charge info
+    // On success, update payment status + store final charge info
+    // Note: paymentStatus tracks payment state, status tracks booking workflow state
     if (paymentIntent.status === "succeeded") {
       await updateDoc(bookingRef, {
         paymentStatus: "final_paid",
