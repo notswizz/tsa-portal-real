@@ -46,6 +46,7 @@ export default function StaffPortalHome() {
   const [availabilitySaving, setAvailabilitySaving] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
   const [availabilityHistory, setAvailabilityHistory] = useState([]);
+  const [staffBookings, setStaffBookings] = useState([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -120,7 +121,8 @@ export default function StaffPortalHome() {
         const showsSnap = await getDocs(showsRef);
         const allShows = showsSnap.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-          .filter((show) => (show.status || "active") === "active");
+          .filter((show) => (show.status || "active") === "active")
+          .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
         setShows(allShows);
 
         // Load all availability entries for this staff member
@@ -130,6 +132,30 @@ export default function StaffPortalHome() {
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
           .filter((item) => item.staffId === userId);
         setAvailabilityHistory(allAvailability);
+
+        // Load bookings where this staff member is assigned
+        const bookingsRef = collection(db, "bookings");
+        const bookingsSnap = await getDocs(bookingsRef);
+        const myBookings = bookingsSnap.docs
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+          .filter((booking) => {
+            // Check if staff is in assignedStaff array
+            if (Array.isArray(booking.assignedStaff)) {
+              return booking.assignedStaff.some(
+                (staff) => staff.staffId === userId || staff.id === userId
+              );
+            }
+            // Check staffAssignments object
+            if (booking.staffAssignments && typeof booking.staffAssignments === "object") {
+              return Object.values(booking.staffAssignments).some(
+                (dayStaff) => Array.isArray(dayStaff) && dayStaff.some(
+                  (s) => s.staffId === userId || s.id === userId
+                )
+              );
+            }
+            return false;
+          });
+        setStaffBookings(myBookings);
 
       } catch (err) {
         console.error("Error loading shows or availability", err);
@@ -462,6 +488,9 @@ export default function StaffPortalHome() {
                         onShowChange={setSelectedShowId}
                         onToggleDate={handleToggleDate}
                         onSubmit={handleAvailabilitySubmit}
+                        staffName={staffDoc?.name}
+                        staffBookings={staffBookings}
+                        payRate={staffDoc?.payRate}
                       />
                     </div>
                   </div>

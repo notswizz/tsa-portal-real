@@ -39,6 +39,10 @@ export default function ClientPortalHome() {
   const [processingStripeSession, setProcessingStripeSession] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
 
+  // Shared modal state
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showShowroomModal, setShowShowroomModal] = useState(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -130,7 +134,8 @@ export default function ClientPortalHome() {
           id: docSnap.id,
           ...docSnap.data(),
         }))
-        .filter((show) => show.status === "active");
+        .filter((show) => show.status === "active")
+        .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
       setShows(list);
     } catch (error) {
       console.error("Error loading shows", error);
@@ -639,12 +644,12 @@ export default function ClientPortalHome() {
                         {profileSection === "contacts" ? (
                           <ClientContactsCard
                             contacts={contacts}
-                            onAddContact={addContact}
+                            onOpenAddModal={() => setShowContactModal(true)}
                           />
                         ) : (
                           <ClientShowroomsCard
                             showrooms={showrooms}
-                            onAddShowroom={addShowroom}
+                            onOpenAddModal={() => setShowShowroomModal(true)}
                           />
                         )}
                       </div>
@@ -695,6 +700,12 @@ export default function ClientPortalHome() {
                           tab={bookingTab}
                           onTabChange={setBookingTab}
                           hideHeader
+                          onAddContact={addContact}
+                          onAddShowroom={addShowroom}
+                          showContactModal={showContactModal}
+                          setShowContactModal={setShowContactModal}
+                          showShowroomModal={showShowroomModal}
+                          setShowShowroomModal={setShowShowroomModal}
                         />
                       </div>
                     </div>
@@ -712,16 +723,16 @@ export default function ClientPortalHome() {
                       Profile
                     </h2>
                     <div className="space-y-4">
-                      <div className="rounded-xl border border-slate-100 bg-white/80 p-4 shadow-sm">
+                      <div id="profile-contacts" className="rounded-xl border border-slate-100 bg-white/80 p-4 shadow-sm">
                         <ClientContactsCard
                           contacts={contacts}
-                          onAddContact={addContact}
+                          onOpenAddModal={() => setShowContactModal(true)}
                         />
                       </div>
-                      <div className="rounded-xl border border-slate-100 bg-white/80 p-4 shadow-sm">
+                      <div id="profile-locations" className="rounded-xl border border-slate-100 bg-white/80 p-4 shadow-sm">
                         <ClientShowroomsCard
                           showrooms={showrooms}
-                          onAddShowroom={addShowroom}
+                          onOpenAddModal={() => setShowShowroomModal(true)}
                         />
                       </div>
                     </div>
@@ -773,6 +784,12 @@ export default function ClientPortalHome() {
                         tab={bookingTab}
                         onTabChange={setBookingTab}
                         hideHeader
+                        onAddContact={addContact}
+                        onAddShowroom={addShowroom}
+                        showContactModal={showContactModal}
+                        setShowContactModal={setShowContactModal}
+                        showShowroomModal={showShowroomModal}
+                        setShowShowroomModal={setShowShowroomModal}
                       />
                     </div>
                   </section>

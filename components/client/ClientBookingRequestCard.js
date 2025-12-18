@@ -63,6 +63,12 @@ export default function ClientBookingRequestCard({
   tab: controlledTab,
   onTabChange,
   hideHeader = false,
+  onAddContact,
+  onAddShowroom,
+  showContactModal,
+  setShowContactModal,
+  showShowroomModal,
+  setShowShowroomModal,
 }) {
   const [internalTab, setInternalTab] = useState("request"); // 'request' | 'history'
   const tab = controlledTab ?? internalTab;
@@ -74,6 +80,59 @@ export default function ClientBookingRequestCard({
   const [staffByDate, setStaffByDate] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  
+  // Contact form state
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactPhone, setNewContactPhone] = useState("");
+  const [newContactEmail, setNewContactEmail] = useState("");
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  
+  // Showroom form state
+  const [newCity, setNewCity] = useState("");
+  const [newBuildingNumber, setNewBuildingNumber] = useState("");
+  const [newFloorNumber, setNewFloorNumber] = useState("");
+  const [newBoothNumber, setNewBoothNumber] = useState("");
+  const [showroomSubmitting, setShowroomSubmitting] = useState(false);
+
+  const handleAddContact = async (e) => {
+    e.preventDefault();
+    if (!newContactName.trim() || !onAddContact) return;
+    setContactSubmitting(true);
+    try {
+      await onAddContact({
+        name: newContactName.trim(),
+        phone: newContactPhone.trim() || null,
+        email: newContactEmail.trim() || null,
+      });
+      setNewContactName("");
+      setNewContactPhone("");
+      setNewContactEmail("");
+      setShowContactModal(false);
+    } finally {
+      setContactSubmitting(false);
+    }
+  };
+
+  const handleAddShowroom = async (e) => {
+    e.preventDefault();
+    if (!newCity || !onAddShowroom) return;
+    setShowroomSubmitting(true);
+    try {
+      await onAddShowroom({
+        city: newCity,
+        buildingNumber: newBuildingNumber.trim() || null,
+        floorNumber: newFloorNumber.trim() || null,
+        boothNumber: newBoothNumber.trim() || null,
+      });
+      setNewCity("");
+      setNewBuildingNumber("");
+      setNewFloorNumber("");
+      setNewBoothNumber("");
+      setShowShowroomModal(false);
+    } finally {
+      setShowroomSubmitting(false);
+    }
+  };
 
   const activeShows = useMemo(
     () => (shows || []).filter((show) => show.status === "active"),
@@ -208,6 +267,13 @@ export default function ClientBookingRequestCard({
           onSubmit={handleSubmit}
           className="mt-1 flex-1 space-y-2 overflow-y-auto pb-40 pr-1 text-sm text-sa-slate lg:pb-10"
         >
+          {/* Deposit notice */}
+          <div className="rounded-xl bg-gradient-to-r from-sa-pinkLight to-pink-50 px-3 py-2 ring-1 ring-sa-pink/10">
+            <p className="text-xs text-sa-navy">
+              <span className="font-semibold">$100 deposit</span> will be deducted from final total
+            </p>
+          </div>
+
           <div className="space-y-1">
             <label
               htmlFor="bookingShow"
@@ -225,7 +291,7 @@ export default function ClientBookingRequestCard({
               <option value="">Select show</option>
               {activeShows.map((show) => (
                 <option key={show.id} value={show.id}>
-                  {show.location} · {show.name}
+                  {show.name}
                 </option>
               ))}
             </select>
@@ -260,19 +326,18 @@ export default function ClientBookingRequestCard({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sa-pinkLight/80 text-[11px] font-semibold text-sa-pink">
-                    $
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
                   </span>
                   <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sa-slate">
-                    Total charge
+                    Total staff days
                   </span>
                 </div>
                 <span className="text-sm font-semibold text-sa-navy">
-                  ${totalCharge.toLocaleString()}
+                  {totalStaffDays} day{totalStaffDays !== 1 ? "s" : ""}
                 </span>
               </div>
-              <p className="text-[10px] text-sa-slate">
-                This amount will be charged after the show.
-              </p>
             </div>
           )}
 
@@ -283,20 +348,33 @@ export default function ClientBookingRequestCard({
             >
               Contact
             </label>
-            <select
-              id="bookingContact"
-              value={contactId}
-              onChange={(event) => setContactId(event.target.value)}
-              required
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-            >
-              <option value="">Select contact</option>
-              {contacts.map((contact) => (
-                <option key={contact.id} value={contact.id}>
-                  {contact.name}
-                </option>
-              ))}
-            </select>
+            {contacts.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowContactModal(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-3 py-3 text-sm font-medium text-sa-slate transition hover:border-sa-pink hover:bg-sa-pinkLight/30 hover:text-sa-pink"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add primary contact for show
+              </button>
+            ) : (
+              <select
+                id="bookingContact"
+                value={contactId}
+                onChange={(event) => setContactId(event.target.value)}
+                required
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+              >
+                <option value="">Select contact</option>
+                {contacts.map((contact) => (
+                  <option key={contact.id} value={contact.id}>
+                    {contact.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -306,20 +384,33 @@ export default function ClientBookingRequestCard({
             >
               Booth location
             </label>
-            <select
-              id="bookingShowroom"
-              value={showroomId}
-              onChange={(event) => setShowroomId(event.target.value)}
-              required
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-            >
-              <option value="">Select booth location</option>
-              {showrooms.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {formatShowroomLabel(room)}
-                </option>
-              ))}
-            </select>
+            {showrooms.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowShowroomModal(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-3 py-3 text-sm font-medium text-sa-slate transition hover:border-sa-pink hover:bg-sa-pinkLight/30 hover:text-sa-pink"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add location for show
+              </button>
+            ) : (
+              <select
+                id="bookingShowroom"
+                value={showroomId}
+                onChange={(event) => setShowroomId(event.target.value)}
+                required
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+              >
+                <option value="">Select booth location</option>
+                {showrooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {formatShowroomLabel(room)}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -366,11 +457,147 @@ export default function ClientBookingRequestCard({
             >
               {isSubmitting ? "Sending request..." : "Request booking"}
             </button>
-            <p className="mt-1 text-center text-[11px] text-sa-slate">
-              ($100 deposit)
-            </p>
           </div>
         </form>
+      )}
+
+      {/* Add Contact Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md animate-fade-in rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-100/80">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-sa-navy">Add Contact</h3>
+              <button
+                type="button"
+                onClick={() => setShowContactModal(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sa-slate transition hover:bg-slate-200 hover:text-sa-navy"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleAddContact} className="space-y-3">
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-sa-slate">
+                  Name <span className="text-sa-pink">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newContactName}
+                  onChange={(e) => setNewContactName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  placeholder="Contact name"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-sa-slate">Phone</label>
+                <input
+                  type="tel"
+                  value={newContactPhone}
+                  onChange={(e) => setNewContactPhone(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  placeholder="(555) 123-4567"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-sa-slate">Email</label>
+                <input
+                  type="email"
+                  value={newContactEmail}
+                  onChange={(e) => setNewContactEmail(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  placeholder="email@company.com"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={contactSubmitting}
+                className="mt-2 w-full rounded-xl bg-sa-pink px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-[#ff0f80] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {contactSubmitting ? "Saving..." : "Save Contact"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Showroom Modal */}
+      {showShowroomModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md animate-fade-in rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-100/80">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-sa-navy">Add Booth Location</h3>
+              <button
+                type="button"
+                onClick={() => setShowShowroomModal(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sa-slate transition hover:bg-slate-200 hover:text-sa-navy"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleAddShowroom} className="space-y-3">
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-sa-slate">
+                  City <span className="text-sa-pink">*</span>
+                </label>
+                <select
+                  required
+                  value={newCity}
+                  onChange={(e) => setNewCity(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                >
+                  <option value="">Select city</option>
+                  <option value="ATL">Atlanta (ATL)</option>
+                  <option value="LA">Los Angeles (LA)</option>
+                  <option value="DAL">Dallas (DAL)</option>
+                  <option value="NYC">New York (NYC)</option>
+                  <option value="LV">Las Vegas (LV)</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-sa-slate">Building Number</label>
+                <input
+                  type="text"
+                  value={newBuildingNumber}
+                  onChange={(e) => setNewBuildingNumber(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  placeholder=""
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-sa-slate">Floor Number</label>
+                <input
+                  type="text"
+                  value={newFloorNumber}
+                  onChange={(e) => setNewFloorNumber(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  placeholder=""
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-sa-slate">Booth Number</label>
+                <input
+                  type="text"
+                  value={newBoothNumber}
+                  onChange={(e) => setNewBoothNumber(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  placeholder=""
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={showroomSubmitting}
+                className="mt-2 w-full rounded-xl bg-sa-pink px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-[#ff0f80] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {showroomSubmitting ? "Saving..." : "Save Location"}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
