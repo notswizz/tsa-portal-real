@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 export default function StaffAvailabilityPanel({
   shows,
@@ -16,8 +16,46 @@ export default function StaffAvailabilityPanel({
   staffName,
   staffBookings = [],
   payRate,
+  staffCity,
 }) {
   const [showFaqModal, setShowFaqModal] = useState(false);
+  const [locationFilter, setLocationFilter] = useState("all");
+
+  // Get unique locations from shows
+  const locationOptions = useMemo(() => {
+    const locations = new Set();
+    shows.forEach((show) => {
+      if (show.location) {
+        // Extract city from location (e.g., "New York, NY" -> "New York")
+        const city = show.location.split(",")[0].trim();
+        locations.add(city);
+      }
+    });
+    return Array.from(locations).sort();
+  }, [shows]);
+
+  // Set default location filter to staff's city if it matches available locations
+  useEffect(() => {
+    if (staffCity && locationOptions.length > 0) {
+      const staffCityLower = staffCity.toLowerCase().trim();
+      const matchingLocation = locationOptions.find(
+        (loc) => loc.toLowerCase().includes(staffCityLower) || staffCityLower.includes(loc.toLowerCase())
+      );
+      if (matchingLocation) {
+        setLocationFilter(matchingLocation);
+      }
+    }
+  }, [staffCity, locationOptions]);
+
+  // Filter shows by location
+  const filteredShows = useMemo(() => {
+    if (locationFilter === "all") return shows;
+    return shows.filter((show) => {
+      if (!show.location) return false;
+      const showCity = show.location.split(",")[0].trim();
+      return showCity === locationFilter;
+    });
+  }, [shows, locationFilter]);
 
   // Calculate stats from bookings and availability
   const stats = useMemo(() => {
@@ -268,12 +306,36 @@ export default function StaffAvailabilityPanel({
         <form onSubmit={onSubmit} className="space-y-5">
           {/* Show Selector */}
           <div className="space-y-3">
-            <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sa-navy">
-              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-sa-pink to-[#ff5fa8] text-[10px] font-bold text-white shadow-sm">
-                1
-              </span>
-              Select Show
-            </label>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sa-navy">
+                <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-sa-pink to-[#ff5fa8] text-[10px] font-bold text-white shadow-sm">
+                  1
+                </span>
+                Select Show
+              </label>
+              
+              {/* Location Filter */}
+              {locationOptions.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-sa-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <select
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-sa-navy outline-none transition focus:border-sa-pink focus:ring-2 focus:ring-sa-pink/20"
+                  >
+                    <option value="all">All Locations</option>
+                    {locationOptions.map((loc) => (
+                      <option key={loc} value={loc}>
+                        {loc}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
             
             {loadingShows ? (
               <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-4">
@@ -283,17 +345,31 @@ export default function StaffAvailabilityPanel({
                 </svg>
                 <span className="text-sm text-sa-slate">Loading shows...</span>
               </div>
-            ) : shows.length === 0 ? (
+            ) : filteredShows.length === 0 ? (
               <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-6 text-center">
                 <svg className="mx-auto h-10 w-10 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="mt-3 text-sm font-medium text-amber-800">No Active Shows</p>
-                <p className="mt-1 text-xs text-amber-600">Check back soon for new opportunities.</p>
+                <p className="mt-3 text-sm font-medium text-amber-800">
+                  {locationFilter !== "all" ? `No Shows in ${locationFilter}` : "No Active Shows"}
+                </p>
+                <p className="mt-1 text-xs text-amber-600">
+                  {locationFilter !== "all" ? (
+                    <button
+                      type="button"
+                      onClick={() => setLocationFilter("all")}
+                      className="underline hover:text-amber-700"
+                    >
+                      View all locations
+                    </button>
+                  ) : (
+                    "Check back soon for new opportunities."
+                  )}
+                </p>
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {shows.map((show) => {
+                {filteredShows.map((show) => {
                   const isSelected = selectedShowId === show.id;
                   const badge = getShowBadge(show);
                   const daysUntil = getDaysUntil(show.startDate);

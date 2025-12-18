@@ -267,6 +267,9 @@ export default function ClientBookingRequestCard({
           onSubmit={handleSubmit}
           className="mt-1 flex-1 space-y-2 overflow-y-auto pb-40 pr-1 text-sm text-sa-slate lg:pb-10"
         >
+          {/* Form title */}
+          <h2 className="text-lg font-bold text-sa-navy">Booking Request</h2>
+
           {/* Deposit notice */}
           <div className="rounded-xl bg-gradient-to-r from-sa-pinkLight to-pink-50 px-3 py-2 ring-1 ring-sa-pink/10">
             <p className="text-xs text-sa-navy">

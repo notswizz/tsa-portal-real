@@ -491,6 +491,7 @@ export default function StaffPortalHome() {
                         staffName={staffDoc?.name}
                         staffBookings={staffBookings}
                         payRate={staffDoc?.payRate}
+                        staffCity={staffDoc?.city || staffDoc?.location}
                       />
                     </div>
                   </div>
