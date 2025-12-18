@@ -45,10 +45,33 @@ export default async function handler(req, res) {
       process.env.NEXT_PUBLIC_APP_URL || req.headers.origin || "";
     const baseUrl = origin.replace(/\/$/, "");
 
+    // Check if customer already exists for this client
+    let customerId = null;
+    if (clientEmail) {
+      const existingCustomers = await stripe.customers.list({
+        email: clientEmail,
+        limit: 1,
+      });
+      if (existingCustomers.data.length > 0) {
+        customerId = existingCustomers.data[0].id;
+      } else {
+        // Create a new customer so we can charge them later
+        const newCustomer = await stripe.customers.create({
+          email: clientEmail,
+          metadata: {
+            clientId,
+          },
+        });
+        customerId = newCustomer.id;
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      customer_email: clientEmail || undefined,
+      customer: customerId || undefined,
+      customer_email: !customerId ? clientEmail : undefined,
+      customer_creation: !customerId ? "always" : undefined,
       line_items: [
         {
           price_data: {

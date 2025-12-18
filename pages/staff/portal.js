@@ -378,7 +378,7 @@ export default function StaffPortalHome() {
   return (
     <>
       <Head>
-        <title>Staff Dashboard · The Smith Agency</title>
+        <title>Staff Portal · The Smith Agency</title>
         <meta
           name="description"
           content="Staff dashboard for The Smith Agency."
@@ -402,7 +402,7 @@ export default function StaffPortalHome() {
                     viewState === "application"
                       ? "Staff Application"
                       : viewState === "dashboard"
-                      ? "Staff Dashboard"
+                      ? "Staff Portal"
                       : "Application Under Review"
                   }
                   onLogout={handleLogout}

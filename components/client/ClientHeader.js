@@ -17,12 +17,15 @@ export default function ClientHeader({ companyName, onLogout }) {
           />
         </div>
         <div className="min-w-0">
-          <p className="hidden text-[10px] font-semibold uppercase tracking-[0.3em] text-sa-pink sm:block">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sa-pink">
             The Smith Agency
           </p>
           <h1 className="truncate font-display text-lg font-semibold tracking-tight text-sa-navy sm:text-2xl">
             {companyName || "Client Portal"}
           </h1>
+          <p className="text-[10px] font-medium text-sa-slate">
+            Client Portal
+          </p>
         </div>
       </div>
 
