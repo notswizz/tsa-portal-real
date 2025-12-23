@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing booking data." });
     }
 
-    const bookingFeeCents = 10000; // $100 deposit
+    const bookingFeeCents = parseInt(process.env.STRIPE_BOOKING_FEE_CENTS, 10) || 10000;
 
     const metadata = {
       clientId,
