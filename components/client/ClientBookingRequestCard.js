@@ -84,6 +84,7 @@ export default function ClientBookingRequestCard({
   const [internalTab, setInternalTab] = useState("request"); // 'request' | 'history'
   const tab = controlledTab ?? internalTab;
   const setTab = onTabChange ?? setInternalTab;
+  const [formStep, setFormStep] = useState(1); // 1 = show/dates, 2 = contact/location/notes
   const [contactId, setContactId] = useState("");
   const [showroomId, setShowroomId] = useState("");
   const [notes, setNotes] = useState("");
@@ -91,6 +92,7 @@ export default function ClientBookingRequestCard({
   const [staffByDate, setStaffByDate] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [stepError, setStepError] = useState("");
   
   // Contact form state
   const [newContactName, setNewContactName] = useState("");
@@ -177,7 +179,33 @@ export default function ClientBookingRequestCard({
     setShowroomId("");
     setNotes("");
     setAgreedToTerms(false);
+    setFormStep(1);
+    setStepError("");
   }, [selectedShowId]);
+
+  const validateStep1 = () => {
+    if (!selectedShowId) {
+      setStepError("Please select a show.");
+      return false;
+    }
+    if (totalStaffDays === 0) {
+      setStepError("Please select staff for at least one day.");
+      return false;
+    }
+    setStepError("");
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (formStep === 1 && validateStep1()) {
+      setFormStep(2);
+    }
+  };
+
+  const handlePrevStep = () => {
+    setStepError("");
+    setFormStep(1);
+  };
 
   const totalStaffDays = useMemo(
     () =>
@@ -276,205 +304,262 @@ export default function ClientBookingRequestCard({
       ) : (
         <form
           onSubmit={handleSubmit}
-          className="mt-1 flex-1 space-y-2 overflow-y-auto pb-40 pr-1 text-sm text-sa-slate lg:pb-10"
+          className="mt-1 flex-1 space-y-3 overflow-y-auto pb-40 pr-1 text-sm text-sa-slate lg:pb-10"
         >
-          {/* Form title */}
-          <h2 className="text-lg font-bold text-sa-navy">Booking Request</h2>
-
-          {/* Deposit notice */}
-          <div className="rounded-xl bg-gradient-to-r from-sa-pinkLight to-pink-50 px-3 py-2 ring-1 ring-sa-pink/10">
-            <p className="text-xs text-sa-navy">
-              <span className="font-semibold">$100 deposit</span> will be deducted from final total
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <label
-              htmlFor="bookingShow"
-              className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
-            >
-              Show
-            </label>
-            <select
-              id="bookingShow"
-              value={selectedShowId}
-              onChange={(event) => setSelectedShowId(event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-              required
-            >
-              <option value="">Select show</option>
-              {activeShows.map((show) => {
-                const dateRange = formatShowDateRange(show);
-                return (
-                  <option key={show.id} value={show.id}>
-                    {show.name}{dateRange ? ` (${dateRange})` : ""}
-                  </option>
-                );
-              })}
-            </select>
-            {selectedShow && (
-              <p className="mt-1 text-[11px] text-sa-slate">
-                {selectedShow.startDate} – {selectedShow.endDate} ·{" "}
-                {selectedShow.season} {selectedShow.type?.trim()}
-              </p>
-            )}
-          </div>
-
-          {showDates.length > 0 && (
-            <div className="space-y-2 rounded-2xl bg-slate-50/70 p-3 text-[11px]">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sa-slate">
-                Staff per day
-              </p>
-              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {showDates.map((date) => (
-                  <StaffDayRow
-                    key={date}
-                    date={date}
-                    value={staffByDate[date]}
-                    onChange={handleStaffChange}
-                  />
-                ))}
+          {/* Form header with step indicator */}
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-sa-navy">Booking Request</h2>
+            <div className="flex items-center gap-2">
+              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                formStep === 1 
+                  ? "bg-sa-pink text-white shadow-md shadow-sa-pink/30" 
+                  : "bg-green-500 text-white"
+              }`}>
+                {formStep > 1 ? (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : "1"}
+              </div>
+              <div className={`h-1 w-6 rounded-full transition-all ${formStep > 1 ? "bg-green-500" : "bg-slate-200"}`} />
+              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                formStep === 2 
+                  ? "bg-sa-pink text-white shadow-md shadow-sa-pink/30" 
+                  : "bg-slate-200 text-slate-400"
+              }`}>
+                2
               </div>
             </div>
-          )}
-
-          {totalStaffDays > 0 && (
-            <div className="space-y-1 rounded-2xl border border-sa-pink/15 bg-slate-50/90 p-3 text-[11px] text-sa-slate shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sa-pinkLight/80 text-[11px] font-semibold text-sa-pink">
-                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sa-slate">
-                    Total staff days
-                  </span>
-                </div>
-                <span className="text-sm font-semibold text-sa-navy">
-                  {totalStaffDays} day{totalStaffDays !== 1 ? "s" : ""}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-1">
-            <label
-              htmlFor="bookingContact"
-              className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
-            >
-              Contact
-            </label>
-            {contacts.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowContactModal(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-3 py-3 text-sm font-medium text-sa-slate transition hover:border-sa-pink hover:bg-sa-pinkLight/30 hover:text-sa-pink"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add primary contact for show
-              </button>
-            ) : (
-              <select
-                id="bookingContact"
-                value={contactId}
-                onChange={(event) => setContactId(event.target.value)}
-                required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-              >
-                <option value="">Select contact</option>
-                {contacts.map((contact) => (
-                  <option key={contact.id} value={contact.id}>
-                    {contact.name}
-                  </option>
-                ))}
-              </select>
-            )}
           </div>
 
-          <div className="space-y-1">
-            <label
-              htmlFor="bookingShowroom"
-              className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
-            >
-              Booth location
-            </label>
-            {showrooms.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowShowroomModal(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-3 py-3 text-sm font-medium text-sa-slate transition hover:border-sa-pink hover:bg-sa-pinkLight/30 hover:text-sa-pink"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add location for show
-              </button>
-            ) : (
-              <select
-                id="bookingShowroom"
-                value={showroomId}
-                onChange={(event) => setShowroomId(event.target.value)}
-                required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-              >
-                <option value="">Select booth location</option>
-                {showrooms.map((room) => (
-                  <option key={room.id} value={room.id}>
-                    {formatShowroomLabel(room)}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <label
-              htmlFor="bookingNotes"
-              className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
-            >
-              Notes
-            </label>
-            <textarea
-              id="bookingNotes"
-              rows={3}
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy shadow-inner outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
-            />
-          </div>
-
-          <div className="space-y-2 pt-1">
-            <label className="flex items-start gap-2 text-[11px] text-sa-slate">
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(event) => setAgreedToTerms(event.target.checked)}
-                className="mt-[2px] h-3.5 w-3.5 rounded border-slate-300 text-sa-pink focus:ring-sa-pink/40"
-              />
-              <span>
-                I agree to The Smith Agency{" "}
-                <a
-                  href="#"
-                  onClick={(event) => event.preventDefault()}
-                  className="font-medium text-sa-pink underline-offset-2 hover:underline"
+          {/* Step 1: Show and Dates */}
+          {formStep === 1 && (
+            <div className="animate-fade-in space-y-3">
+              <div className="space-y-1">
+                <label
+                  htmlFor="bookingShow"
+                  className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
                 >
-                  terms and conditions
-                </a>
-                .
-              </span>
-            </label>
+                  Show
+                </label>
+                <select
+                  id="bookingShow"
+                  value={selectedShowId}
+                  onChange={(event) => setSelectedShowId(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  required
+                >
+                  <option value="">Select show</option>
+                  {activeShows.map((show) => {
+                    const dateRange = formatShowDateRange(show);
+                    return (
+                      <option key={show.id} value={show.id}>
+                        {show.name}{dateRange ? ` (${dateRange})` : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting || !agreedToTerms}
-              className="mt-1 inline-flex w-full items-center justify-center rounded-xl bg-sa-pink px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-[#ff0f80] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSubmitting ? "Sending request..." : "Request booking"}
-            </button>
-          </div>
+              {showDates.length > 0 && (
+                <div className="space-y-2 rounded-2xl bg-slate-50/70 p-3 text-[11px]">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sa-slate">
+                    Staff per day
+                  </p>
+                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {showDates.map((date) => (
+                      <StaffDayRow
+                        key={date}
+                        date={date}
+                        value={staffByDate[date]}
+                        onChange={handleStaffChange}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step error */}
+              {stepError && (
+                <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-100">
+                  <svg className="h-4 w-4 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {stepError}
+                </div>
+              )}
+
+              {/* Next button */}
+              <button
+                type="button"
+                onClick={handleNextStep}
+                disabled={totalStaffDays === 0}
+                className="group mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sa-pink px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-[#ff0f80] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Request Booking
+                <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* Step 2: Contact, Location, Notes */}
+          {formStep === 2 && (
+            <div className="animate-fade-in space-y-3">
+              {/* Summary of step 1 */}
+              <div className="rounded-xl bg-slate-50/80 p-3 ring-1 ring-slate-100">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-medium text-sa-navy">{selectedShow?.name}</p>
+                    <p className="text-[11px] text-sa-slate">
+                      {totalStaffDays} staff day{totalStaffDays !== 1 ? "s" : ""} · ${totalCharge} total
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    className="rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-medium text-sa-slate shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-sa-navy"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label
+                  htmlFor="bookingContact"
+                  className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
+                >
+                  Contact
+                </label>
+                {contacts.length === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowContactModal(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-3 py-3 text-sm font-medium text-sa-slate transition hover:border-sa-pink hover:bg-sa-pinkLight/30 hover:text-sa-pink"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add primary contact for show
+                  </button>
+                ) : (
+                  <select
+                    id="bookingContact"
+                    value={contactId}
+                    onChange={(event) => setContactId(event.target.value)}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  >
+                    <option value="">Select contact</option>
+                    {contacts.map((contact) => (
+                      <option key={contact.id} value={contact.id}>
+                        {contact.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label
+                  htmlFor="bookingShowroom"
+                  className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
+                >
+                  Booth location
+                </label>
+                {showrooms.length === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowShowroomModal(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-3 py-3 text-sm font-medium text-sa-slate transition hover:border-sa-pink hover:bg-sa-pinkLight/30 hover:text-sa-pink"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add location for show
+                  </button>
+                ) : (
+                  <select
+                    id="bookingShowroom"
+                    value={showroomId}
+                    onChange={(event) => setShowroomId(event.target.value)}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  >
+                    <option value="">Select booth location</option>
+                    {showrooms.map((room) => (
+                      <option key={room.id} value={room.id}>
+                        {formatShowroomLabel(room)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label
+                  htmlFor="bookingNotes"
+                  className="block text-xs font-medium uppercase tracking-[0.18em] text-sa-slate"
+                >
+                  Notes <span className="font-normal text-slate-400">(optional)</span>
+                </label>
+                <textarea
+                  id="bookingNotes"
+                  rows={3}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-sa-navy shadow-inner outline-none transition focus:border-sa-pink focus:bg-white focus:ring-2 focus:ring-sa-pink/20"
+                  placeholder="Any special requests or notes..."
+                />
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <label className="flex items-start gap-2 text-[11px] text-sa-slate">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(event) => setAgreedToTerms(event.target.checked)}
+                    className="mt-[2px] h-3.5 w-3.5 rounded border-slate-300 text-sa-pink focus:ring-sa-pink/40"
+                  />
+                  <span>
+                    I agree to The Smith Agency{" "}
+                    <a
+                      href="#"
+                      onClick={(event) => event.preventDefault()}
+                      className="font-medium text-sa-pink underline-offset-2 hover:underline"
+                    >
+                      terms and conditions
+                    </a>
+                    .
+                  </span>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !agreedToTerms}
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sa-pink px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-[#ff0f80] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSubmitting ? (
+                    "Sending request..."
+                  ) : (
+                    <>
+                      Book {totalStaffDays} Day{totalStaffDays !== 1 ? "s" : ""}
+                      <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+
+                {/* Subtle deposit notice */}
+                <p className="text-center text-[10px] text-sa-slate">
+                  A $100 deposit will be collected now and deducted from your final total.
+                </p>
+              </div>
+            </div>
+          )}
         </form>
       )}
 
