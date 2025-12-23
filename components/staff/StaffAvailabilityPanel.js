@@ -17,6 +17,7 @@ export default function StaffAvailabilityPanel({
   staffBookings = [],
   payRate,
   staffCity,
+  mobileTab = "availability",
 }) {
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [locationFilter, setLocationFilter] = useState("all");
@@ -155,8 +156,8 @@ export default function StaffAvailabilityPanel({
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section with Stats */}
-      <div className="rounded-2xl bg-gradient-to-br from-sa-pinkLight via-pink-50 to-white p-5 ring-1 ring-sa-pink/10">
+      {/* Welcome Section with Stats - hidden on mobile */}
+      <div className="hidden rounded-2xl bg-gradient-to-br from-sa-pinkLight via-pink-50 to-white p-5 ring-1 ring-sa-pink/10 sm:block">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-lg font-semibold text-sa-navy sm:text-xl">
@@ -183,8 +184,8 @@ export default function StaffAvailabilityPanel({
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
+      {/* Main Content - Availability Form */}
+      <div className={`rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6 ${mobileTab !== "availability" ? "hidden sm:block" : ""}`}>
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <div className="flex items-start gap-3">
@@ -590,7 +591,7 @@ export default function StaffAvailabilityPanel({
       </div>
 
       {/* My Schedule Section */}
-      {availabilityHistory.length > 0 && (() => {
+      {(() => {
         const today = new Date().toISOString().split("T")[0];
         
         // Separate and sort availability entries
@@ -611,8 +612,15 @@ export default function StaffAvailabilityPanel({
         
         const displayList = scheduleView === "upcoming" ? upcomingShows : pastShows;
         
+        // On mobile when schedule tab is selected, always show even if empty
+        // On desktop, only show if there's history
+        const shouldShowOnDesktop = availabilityHistory.length > 0;
+        const shouldShowOnMobile = mobileTab === "schedule";
+        
+        if (!shouldShowOnDesktop && !shouldShowOnMobile) return null;
+        
         return (
-        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
+        <div className={`rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6 ${mobileTab !== "schedule" ? "hidden sm:block" : ""} ${!shouldShowOnDesktop ? "sm:hidden" : ""}`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="flex items-center gap-2 font-semibold text-sa-navy">
               <svg className="h-5 w-5 text-sa-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -52,6 +52,7 @@ export default function StaffPortalHome() {
   const [resumeUploading, setResumeUploading] = useState(false);
   const [headshotFile, setHeadshotFile] = useState(null);
   const [headshotUploading, setHeadshotUploading] = useState(false);
+  const [mobileTab, setMobileTab] = useState("availability"); // "availability" | "schedule"
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -482,7 +483,7 @@ export default function StaffPortalHome() {
           <div className="sa-portal-frame animate-fade-in">
             <div className="rounded-2xl bg-sa-card shadow-soft sm:rounded-3xl">
               {/* Header section */}
-              <div className="border-b border-slate-100/80 px-4 py-4 sm:px-8 sm:py-6">
+              <div className="border-b border-slate-100/80 px-3 py-2.5 sm:px-8 sm:py-6">
                 <StaffHeader
                   email={email}
                   staffName={staffDoc?.name}
@@ -497,6 +498,42 @@ export default function StaffPortalHome() {
                   onLogout={handleLogout}
                 />
               </div>
+              
+              {/* Mobile Tab Toggle - Below mobile header, only show on dashboard view */}
+              {viewState === "dashboard" && (
+                <div className="border-b border-slate-100/80 px-3 py-2.5 sm:hidden">
+                  <div className="flex rounded-xl bg-slate-100 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setMobileTab("availability")}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                        mobileTab === "availability"
+                          ? "bg-white text-sa-navy shadow-sm"
+                          : "text-sa-slate hover:text-sa-navy"
+                      }`}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Availability
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobileTab("schedule")}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                        mobileTab === "schedule"
+                          ? "bg-white text-sa-navy shadow-sm"
+                          : "text-sa-slate hover:text-sa-navy"
+                      }`}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                      Schedule
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Main content area */}
               <main className="px-4 py-5 sm:px-8 sm:py-8">
@@ -572,24 +609,25 @@ export default function StaffPortalHome() {
                   <div className="animate-fade-in">
                     {/* Availability form section */}
                     <div className="rounded-xl border border-slate-100 bg-white/80 p-4 shadow-sm sm:rounded-2xl sm:p-6">
-                      <StaffAvailabilityPanel
-                        shows={shows}
-                        loadingShows={loadingShows}
-                        selectedShowId={selectedShowId}
-                        dateOptions={dateOptions}
-                        selectedDates={selectedDates}
-                        availabilitySaving={availabilitySaving}
-                        availabilityError={availabilityError}
-                        availabilityHistory={availabilityHistory}
-                        hasSubmittedForSelectedShow={hasSubmittedForSelectedShow}
-                        onShowChange={setSelectedShowId}
-                        onToggleDate={handleToggleDate}
-                        onSubmit={handleAvailabilitySubmit}
-                        staffName={staffDoc?.name}
-                        staffBookings={staffBookings}
-                        payRate={staffDoc?.payRate}
-                        staffCity={staffDoc?.city || staffDoc?.location}
-                      />
+<StaffAvailabilityPanel
+                                        shows={shows}
+                                        loadingShows={loadingShows}
+                                        selectedShowId={selectedShowId}
+                                        dateOptions={dateOptions}
+                                        selectedDates={selectedDates}
+                                        availabilitySaving={availabilitySaving}
+                                        availabilityError={availabilityError}
+                                        availabilityHistory={availabilityHistory}
+                                        hasSubmittedForSelectedShow={hasSubmittedForSelectedShow}
+                                        onShowChange={setSelectedShowId}
+                                        onToggleDate={handleToggleDate}
+                                        onSubmit={handleAvailabilitySubmit}
+                                        staffName={staffDoc?.name}
+                                        staffBookings={staffBookings}
+                                        payRate={staffDoc?.payRate}
+                                        staffCity={staffDoc?.city || staffDoc?.location}
+                                        mobileTab={mobileTab}
+                                      />
                     </div>
                   </div>
                 )}
