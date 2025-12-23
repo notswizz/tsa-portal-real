@@ -53,6 +53,17 @@ function getShowDates(show) {
   return dates;
 }
 
+function formatShowDateRange(show) {
+  if (!show?.startDate || !show?.endDate) return "";
+  const start = new Date(`${show.startDate}T00:00:00`);
+  const end = new Date(`${show.endDate}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
+  
+  const startStr = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const endStr = end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${startStr} – ${endStr}`;
+}
+
 export default function ClientBookingRequestCard({
   contacts,
   showrooms,
@@ -292,11 +303,14 @@ export default function ClientBookingRequestCard({
               required
             >
               <option value="">Select show</option>
-              {activeShows.map((show) => (
-                <option key={show.id} value={show.id}>
-                  {show.name}
-                </option>
-              ))}
+              {activeShows.map((show) => {
+                const dateRange = formatShowDateRange(show);
+                return (
+                  <option key={show.id} value={show.id}>
+                    {show.name}{dateRange ? ` (${dateRange})` : ""}
+                  </option>
+                );
+              })}
             </select>
             {selectedShow && (
               <p className="mt-1 text-[11px] text-sa-slate">

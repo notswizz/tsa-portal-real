@@ -20,6 +20,7 @@ export default function StaffAvailabilityPanel({
 }) {
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [locationFilter, setLocationFilter] = useState("all");
+  const [scheduleView, setScheduleView] = useState("upcoming"); // "upcoming" | "past"
 
   // Get unique locations from shows
   const locationOptions = useMemo(() => {
@@ -61,26 +62,11 @@ export default function StaffAvailabilityPanel({
   const stats = useMemo(() => {
     const showsWorked = staffBookings.length;
     
-    // Count total booked days from bookings
+    // Count total booked days - use assignedDates which contains only dates where THIS staff is scheduled
     let daysBooked = 0;
     staffBookings.forEach((booking) => {
-      if (booking.staffAssignments && typeof booking.staffAssignments === "object") {
-        // Count days where this staff is assigned
-        Object.values(booking.staffAssignments).forEach((dayStaff) => {
-          if (Array.isArray(dayStaff)) {
-            const isAssigned = dayStaff.some((s) => s.staffId || s.id);
-            if (isAssigned) daysBooked++;
-          }
-        });
-      } else if (Array.isArray(booking.datesNeeded)) {
-        // Fallback: count dates in the booking
-        daysBooked += booking.datesNeeded.length;
-      } else if (booking.startDate && booking.endDate) {
-        // Calculate days from date range
-        const start = new Date(booking.startDate);
-        const end = new Date(booking.endDate);
-        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-        daysBooked += days;
+      if (Array.isArray(booking.assignedDates)) {
+        daysBooked += booking.assignedDates.length;
       }
     });
     
@@ -604,7 +590,28 @@ export default function StaffAvailabilityPanel({
       </div>
 
       {/* My Schedule Section */}
-      {availabilityHistory.length > 0 && (
+      {availabilityHistory.length > 0 && (() => {
+        const today = new Date().toISOString().split("T")[0];
+        
+        // Separate and sort availability entries
+        const enrichedHistory = availabilityHistory.map((entry) => {
+          const show = shows.find((s) => s.id === entry.showId) || null;
+          const showEndDate = show?.endDate || show?.date || null;
+          const isPast = showEndDate && showEndDate < today;
+          return { ...entry, show, isPast, sortDate: show?.startDate || show?.date || "9999-99-99" };
+        });
+        
+        const upcomingShows = enrichedHistory
+          .filter((e) => !e.isPast)
+          .sort((a, b) => a.sortDate.localeCompare(b.sortDate));
+        
+        const pastShows = enrichedHistory
+          .filter((e) => e.isPast)
+          .sort((a, b) => b.sortDate.localeCompare(a.sortDate)); // Most recent first for past
+        
+        const displayList = scheduleView === "upcoming" ? upcomingShows : pastShows;
+        
+        return (
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="flex items-center gap-2 font-semibold text-sa-navy">
@@ -613,23 +620,81 @@ export default function StaffAvailabilityPanel({
               </svg>
               My Schedule
             </h3>
-            <span className="rounded-full bg-sa-pinkLight px-3 py-1 text-xs font-medium text-sa-pink">
-              {availabilityHistory.length} show{availabilityHistory.length !== 1 ? "s" : ""}
-            </span>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setScheduleView("upcoming")}
+                  className={`rounded-md px-3 py-1.5 transition-all ${
+                    scheduleView === "upcoming"
+                      ? "bg-white text-sa-navy shadow-sm"
+                      : "text-sa-slate hover:text-sa-navy"
+                  }`}
+                >
+                  Upcoming
+                  {upcomingShows.length > 0 && (
+                    <span className="ml-1.5 rounded-full bg-sa-pinkLight px-1.5 py-0.5 text-[10px] font-semibold text-sa-pink">
+                      {upcomingShows.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScheduleView("past")}
+                  className={`rounded-md px-3 py-1.5 transition-all ${
+                    scheduleView === "past"
+                      ? "bg-white text-sa-navy shadow-sm"
+                      : "text-sa-slate hover:text-sa-navy"
+                  }`}
+                >
+                  Past
+                  {pastShows.length > 0 && (
+                    <span className="ml-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                      {pastShows.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-            {availabilityHistory.map((entry) => {
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+            {displayList.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
+                <svg className="mx-auto h-8 w-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="mt-2 text-xs text-sa-slate">
+                  {scheduleView === "upcoming" 
+                    ? "No upcoming shows. Submit your availability above!"
+                    : "No past shows yet."}
+                </p>
+              </div>
+            ) : displayList.map((entry) => {
               const dates = Array.isArray(entry.availableDates)
                 ? entry.availableDates
                 : Array.isArray(entry.dates)
                 ? entry.dates
                 : [];
-              const show = shows.find((s) => s.id === entry.showId) || null;
+              const show = entry.show;
               const title = show?.name || "Show availability";
               
-              // Check if staff is booked for this show
-              const isBooked = staffBookings.some((booking) => booking.showId === entry.showId);
+              // Find bookings for this show and build a map of date -> company
+              const showBookings = staffBookings.filter((booking) => booking.showId === entry.showId);
+              const dateToCompany = {};
+              showBookings.forEach((booking) => {
+                if (Array.isArray(booking.assignedDates)) {
+                  booking.assignedDates.forEach((d) => {
+                    dateToCompany[d] = booking.clientCompanyName || "Client";
+                  });
+                }
+              });
+              
+              // Count booked days out of available days
+              const bookedDates = dates.filter((d) => dateToCompany[d]);
+              const bookedCount = bookedDates.length;
+              const totalCount = dates.length;
+              const hasBookings = bookedCount > 0;
 
               return (
                 <div
@@ -638,7 +703,7 @@ export default function StaffAvailabilityPanel({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      {isBooked ? (
+                      {hasBookings ? (
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-100 to-emerald-50">
                           <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -654,9 +719,17 @@ export default function StaffAvailabilityPanel({
                       <div>
                         <p className="font-medium text-sa-navy">{title}</p>
                         <p className="text-xs text-sa-slate">
-                          {dates.length} day{dates.length !== 1 ? "s" : ""} available
-                          {isBooked && <span className="ml-1 text-green-600 font-medium">· Booked</span>}
-                          {!isBooked && <span className="ml-1 text-amber-600">· Pending</span>}
+                          {hasBookings ? (
+                            <>
+                              <span className="font-semibold text-green-600">{bookedCount}/{totalCount}</span>
+                              <span className="ml-1">days booked</span>
+                            </>
+                          ) : (
+                            <>
+                              {totalCount} day{totalCount !== 1 ? "s" : ""} available
+                              <span className="ml-1 text-amber-600">· Pending</span>
+                            </>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -669,14 +742,29 @@ export default function StaffAvailabilityPanel({
                   
                   {dates.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      {dates.map((value) => (
-                        <span
-                          key={value}
-                          className="inline-flex items-center rounded-lg bg-sa-pinkLight/50 px-2.5 py-1 text-xs font-medium text-sa-pink"
-                        >
-                          {formatShortDate(value)}
-                        </span>
-                      ))}
+                      {dates.map((value) => {
+                        const company = dateToCompany[value];
+                        const isBooked = !!company;
+                        return (
+                          <div
+                            key={value}
+                            className={`inline-flex flex-col items-center rounded-lg px-2.5 py-1.5 text-xs ${
+                              isBooked
+                                ? "bg-green-100 ring-1 ring-green-200"
+                                : "bg-sa-pinkLight/50"
+                            }`}
+                          >
+                            <span className={`font-medium ${isBooked ? "text-green-700" : "text-sa-pink"}`}>
+                              {formatShortDate(value)}
+                            </span>
+                            {isBooked && (
+                              <span className="mt-0.5 text-[10px] font-medium text-green-600 max-w-[80px] truncate">
+                                {company}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -684,7 +772,8 @@ export default function StaffAvailabilityPanel({
             })}
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

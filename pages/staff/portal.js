@@ -12,7 +12,8 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebaseClient";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { auth, db, storage } from "@/lib/firebaseClient";
 import StaffHeader from "@/components/staff/StaffHeader";
 import StaffApplicationForm from "@/components/staff/StaffApplicationForm";
 import StaffAvailabilityPanel from "@/components/staff/StaffAvailabilityPanel";
@@ -47,6 +48,10 @@ export default function StaffPortalHome() {
   const [availabilityError, setAvailabilityError] = useState("");
   const [availabilityHistory, setAvailabilityHistory] = useState([]);
   const [staffBookings, setStaffBookings] = useState([]);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [headshotFile, setHeadshotFile] = useState(null);
+  const [headshotUploading, setHeadshotUploading] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -136,6 +141,16 @@ export default function StaffPortalHome() {
         // Load bookings where this staff member is assigned
         const bookingsRef = collection(db, "bookings");
         const bookingsSnap = await getDocs(bookingsRef);
+        
+        // Also load clients to get company names
+        const clientsRef = collection(db, "clients");
+        const clientsSnap = await getDocs(clientsRef);
+        const clientsMap = {};
+        clientsSnap.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          clientsMap[docSnap.id] = data.name || data.companyName || "Client";
+        });
+        
         const myBookings = bookingsSnap.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
           .filter((booking) => {
@@ -153,7 +168,32 @@ export default function StaffPortalHome() {
                 )
               );
             }
+            // Check datesNeeded[].staffIds (used by admin when assigning staff)
+            if (Array.isArray(booking.datesNeeded)) {
+              return booking.datesNeeded.some(
+                (dateEntry) => Array.isArray(dateEntry.staffIds) && dateEntry.staffIds.includes(userId)
+              );
+            }
             return false;
+          })
+          .map((booking) => {
+            // Enrich booking with client company name and assigned dates
+            const clientName = booking.clientId ? clientsMap[booking.clientId] : null;
+            
+            // Find dates where this staff member is assigned
+            let assignedDates = [];
+            if (Array.isArray(booking.datesNeeded)) {
+              assignedDates = booking.datesNeeded
+                .filter((de) => Array.isArray(de.staffIds) && de.staffIds.includes(userId))
+                .map((de) => de.date)
+                .sort();
+            }
+            
+            return {
+              ...booking,
+              clientCompanyName: clientName || booking.clientCompanyName || null,
+              assignedDates,
+            };
           });
         setStaffBookings(myBookings);
 
@@ -252,6 +292,49 @@ export default function StaffPortalHome() {
     setSaveError("");
 
     try {
+      let resumeURL = staffDoc?.resumeURL || null;
+      let photoURL = staffDoc?.photoURL || null;
+
+      // Upload headshot if there's a new file
+      if (headshotFile) {
+        setHeadshotUploading(true);
+        try {
+          const fileExtension = headshotFile.name.split('.').pop();
+          const fileName = `headshots/${userId}/headshot_${Date.now()}.${fileExtension}`;
+          const storageRef = ref(storage, fileName);
+          
+          await uploadBytes(storageRef, headshotFile);
+          photoURL = await getDownloadURL(storageRef);
+        } catch (uploadErr) {
+          console.error("Error uploading headshot:", uploadErr);
+          setSaveError("Failed to upload headshot. Please try again.");
+          setHeadshotUploading(false);
+          setSaving(false);
+          return;
+        }
+        setHeadshotUploading(false);
+      }
+
+      // Upload resume if there's a new file
+      if (resumeFile) {
+        setResumeUploading(true);
+        try {
+          const fileExtension = resumeFile.name.split('.').pop();
+          const fileName = `resumes/${userId}/resume_${Date.now()}.${fileExtension}`;
+          const storageRef = ref(storage, fileName);
+          
+          await uploadBytes(storageRef, resumeFile);
+          resumeURL = await getDownloadURL(storageRef);
+        } catch (uploadErr) {
+          console.error("Error uploading resume:", uploadErr);
+          setSaveError("Failed to upload resume. Please try again.");
+          setResumeUploading(false);
+          setSaving(false);
+          return;
+        }
+        setResumeUploading(false);
+      }
+
       const staffRef = doc(db, "staff", userId);
       await setDoc(
         staffRef,
@@ -264,6 +347,8 @@ export default function StaffPortalHome() {
           shoeSize: shoeSize.trim(),
           instagram: instagram.trim(),
           retailWholesaleExperience: experience.trim(),
+          resumeURL,
+          photoURL,
           // Mark the application as completed in a way the admin app understands
           applicationCompleted: true,
           applicationFormCompleted: true,
@@ -276,6 +361,8 @@ export default function StaffPortalHome() {
             shoeSize: shoeSize.trim(),
             instagram: instagram.trim(),
             retailWholesaleExperience: experience.trim(),
+            resumeURL,
+            photoURL,
           },
           updatedAt: serverTimestamp(),
         },
@@ -294,6 +381,8 @@ export default function StaffPortalHome() {
         setShoeSize(data.shoeSize || "");
         setInstagram(data.instagram || "");
         setExperience(data.retailWholesaleExperience || "");
+        setResumeFile(null);
+        setHeadshotFile(null);
       }
     } catch (err) {
       console.error("Error saving staff application", err);
@@ -423,6 +512,12 @@ export default function StaffPortalHome() {
                       shoeSize={shoeSize}
                       instagram={instagram}
                       experience={experience}
+                      resumeFile={resumeFile}
+                      resumeUploading={resumeUploading}
+                      existingResumeURL={staffDoc?.resumeURL}
+                      headshotFile={headshotFile}
+                      headshotUploading={headshotUploading}
+                      existingHeadshotURL={staffDoc?.photoURL}
                       saving={saving}
                       saveError={saveError}
                       onChangePhone={setPhone}
@@ -433,6 +528,8 @@ export default function StaffPortalHome() {
                       onChangeShoeSize={setShoeSize}
                       onChangeInstagram={setInstagram}
                       onChangeExperience={setExperience}
+                      onChangeResume={setResumeFile}
+                      onChangeHeadshot={setHeadshotFile}
                       onSubmit={handleApplicationSubmit}
                     />
                   </div>

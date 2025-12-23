@@ -96,6 +96,8 @@ export default async function handler(req, res) {
       baseTotalCents: finalTotalCents,
       depositCents,
       totalStaffDays,
+      staffDays: totalStaffDays,
+      rateCents: ratePerDayCents,
       currency: booking.currency || "usd",
     };
 
